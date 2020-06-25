@@ -35,4 +35,4 @@ Please take a look to :
 [MIT_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [Cargo tests]: https://github.com/Jimskapt/multipath/workflows/Cargo%20checks/badge.svg
 [GHA]: https://github.com/Jimskapt/multipath/actions
-[tests_GitHub]: https://github.com/Jimskapt/multipath/blob/master/examples/full_demo.rs
+[tests_GitHub]: https://github.com/Jimskapt/multipath/blob/master/src/tests.rs
