@@ -1,6 +1,6 @@
 [package]
 name = "multipath"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Jimskapt <rami.programmer@gmail.com>"]
 description = "A library to split file path, like `/home/{user,admin}/file.txt`."
 edition = "2018"

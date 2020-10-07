@@ -1,92 +1,123 @@
 #[cfg(test)]
 mod tests;
 
-pub fn from(input: &str) -> Vec<String> {
-	let mut results: Vec<String> = Vec::new();
+const FLAG: &str = "[grgnrt64sg@rth144615r0jk]";
 
-	let mut value_buffer = input.clone();
+/**
+Split `input` as vector of string according to `{a,b,c}` schema.
 
-	while !value_buffer.is_empty() {
-		// dbg!("new_loop", &value_buffer, &results);
+**Warning :** in some specific case, result can return characters which are not
+supported by O.S. paths, like `'{'` or `','`.
+Read some [tests](https://github.com/Jimskapt/multipath/blob/master/src/tests.rs)
+in order to know more about this cases.
 
-		if let Some(first_open) = value_buffer.find("{") {
-			// dbg!(&first_open);
-			let value_close_buffer = &value_buffer[first_open..];
-			// dbg!(&value_close_buffer);
-			let mut found = false;
-			if let Some(first_close) = value_close_buffer.find("}") {
-				// dbg!(&first_close);
-				let split_potential = &value_buffer[first_open + 1..first_open + first_close];
-				let split_potential: Vec<&str> =
-					split_potential.split(',').map(|e| e.trim()).collect();
-				// dbg!(&split_potential);
+# Example
 
-				if split_potential.len() > 1 {
-					if results.is_empty() {
-						for split_content in &split_potential {
-							let mut temp = String::from(&value_buffer[..first_open]);
-							temp += split_content;
-							results.push(temp);
-						}
-					} else {
-						let mut new_results = vec![];
+```rust
+assert_eq!(
+	multipath::parse("/home/{user,admin}/{Desktop,Download}/file.txt"),
+	vec![
+		"/home/user/Desktop/file.txt",
+		"/home/user/Download/file.txt",
+		"/home/admin/Desktop/file.txt",
+		"/home/admin/Download/file.txt",
+	]
+);
+```
+*/
+pub fn parse(input: &str) -> Vec<String> {
 
-						for split_value in split_potential {
-							for result in &results {
-								let mut new_result = result.clone();
-								new_result += &value_buffer[..first_open];
-								new_result += split_value;
+	// "start" begins after an `{`.
+	let mut start_pos = 0;
+	// "level" is current level of `{`.
+	// example : in `` level is 0, in `{` level is 1, in `{{` level is 2, in `{{{` level is 3, ...
+	let mut level = 0;
 
-								new_results.push(new_result);
+	// a new element begins after an `{` or an `,`.
+	// example : in `{a,b,c}`, elements are `a`, `b` and `c`.
+	let mut previous_element_pos = 0;
+	let mut elements = vec![];
+
+	for (i, character) in input.chars().enumerate() {
+		if character == '{' {
+
+			level += 1;
+
+			if level == 1 {
+				start_pos = i;
+				previous_element_pos = start_pos;
+			}
+
+		} else if character == ',' && level == 1 {
+
+			let recursive_elements = parse(&input[previous_element_pos + 1..i].trim());
+			for element in recursive_elements {
+				elements.push(element);
+			}
+
+			previous_element_pos = i;
+
+		} else if character == '}' {
+
+			if level == 1 {
+				let last_recursive_elements = parse(&input[previous_element_pos + 1..i].trim());
+				for element in last_recursive_elements {
+					elements.push(element.clone());
+				}
+
+				if !elements.is_empty() {
+					return elements
+						.iter()
+						.flat_map(|element| {
+							let mut res = vec![];
+
+							let recursive_elements = parse(&input[i + 1..]);
+							for recursive_element in recursive_elements {
+								let mut temp = String::from(&input[..start_pos]);
+								temp += &element;
+								temp += &recursive_element;
+
+								res.push(temp);
 							}
-						}
 
-						results = new_results;
-					}
-
-					value_buffer = &value_buffer[first_open + first_close + 1..];
-					found = true;
-				}
-			}
-
-			// dbg!(&found);
-			if !found {
-				if results.is_empty() {
-					results.push(value_buffer[..first_open + 1].to_owned());
+							res
+						})
+						.collect();
 				} else {
-					let mut new_results = vec![];
-
-					for result in &results {
-						let mut new_result = result.clone();
-						new_result += &value_buffer[..first_open + 1];
-
-						new_results.push(new_result);
-					}
-
-					results = new_results;
+					return vec![String::from(input)];
 				}
-
-				value_buffer = &value_buffer[first_open + 1..];
-			}
-		} else {
-			if results.is_empty() {
-				results.push(value_buffer.to_owned());
-			} else {
-				let mut new_results = vec![];
-
-				for result in &results {
-					let mut new_result = result.clone();
-					new_result += &value_buffer;
-
-					new_results.push(new_result);
-				}
-
-				results = new_results;
 			}
 
-			value_buffer = "";
+			if level > 0 {
+				level -= 1;
+			}
+
 		}
 	}
 
-	return results;
+	if level > 0 {
+		let mut last_open = 0;
+		for (i, character) in input.chars().enumerate() {
+			if character == '{' {
+				last_open = i;
+			}
+		}
+
+		if last_open > 0 {
+			let mut temp = String::from(&input[..last_open]);
+			temp += FLAG;
+			temp += &input[(last_open + 1)..];
+
+			dbg!(&temp);
+
+			let res = parse(&temp);
+
+			return res
+				.iter()
+				.map(|element| element.replace(FLAG, "{"))
+				.collect();
+		}
+	}
+
+	return vec![String::from(input)];
 }

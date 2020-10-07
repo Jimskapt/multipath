@@ -2,20 +2,21 @@
 
 A library to split file path, like `/home/{user,admin}/file.txt`.
 
-⚠ Warning : this version is not finished yet and should not be used in production. Take a look of [test accomplishments][GHA].
+⚠ Warning : this version now satisfies [all the tests][GHA]. However, I think the code need to be optimized !
 
 Example :
 
 ```rust
 fn main() {
     assert_eq!(
-        multipath::from("/home/{user,admin}/{Desktop,Download}/file.txt"),
+        multipath::parse("/home/{user,admin}/{Desktop,Download}/file.txt"),
         vec![
             "/home/user/Desktop/file.txt",
             "/home/user/Download/file.txt",
             "/home/admin/Desktop/file.txt",
             "/home/admin/Download/file.txt",
         ]
+    );
 }
 ```
 
